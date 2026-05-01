@@ -1,0 +1,122 @@
+# sketch-sync/.gitignore
+
+# ================================
+# ENVIRONMENT FILES
+# ================================
+.env
+.env.local
+.env.production
+.env.development
+.env.test
+*.env
+
+# ================================
+# PYTHON BACKEND
+# ================================
+# Virtual environments
+venv/
+.venv/
+env/
+ENV/
+env.bak/
+venv.bak/
+pythonenv*
+
+# Bytecode
+__pycache__/
+*.py[cod]
+*$py.class
+*.pyc
+
+# Distribution / packaging
+.Python
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+wheels/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# ================================
+# REACT FRONTEND
+# ================================
+node_modules/
+.npm/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build outputs
+dist/
+dist-ssr/
+build/
+.out/
+.next/
+*.local
+
+# ================================
+# DATABASES
+# ================================
+*.db
+*.sqlite
+*.sqlite3
+*.db-journal
+
+# ================================
+# LOGS
+# ================================
+logs/
+*.log
+*.log.*
+
+# ================================
+# TESTING
+# ================================
+.pytest_cache/
+.tox/
+.coverage
+.coverage.*
+htmlcov/
+*.cover
+*.py,cover
+.hypothesis/
+
+# ================================
+# IDE / EDITOR
+# ================================
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+.DS_Store
+Thumbs.db
+*.suo
+*.user
+*.sln.docstates
+
+# ================================
+# SECRETS / KEYS
+# ================================
+*.pem
+*.key
+*.crt
+*.p12
+.secrets/
+
+# ================================
+# MISC
+# ================================
+*.bak
+*.tmp
+*.temp
