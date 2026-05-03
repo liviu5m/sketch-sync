@@ -4,10 +4,12 @@ import React, { createContext, useContext, useEffect, useState } from "react";
 import type { ReactNode } from "react";
 import type { User } from "./Types";
 import { ToastContainer } from "react-toastify";
+import { useQuery } from "@tanstack/react-query";
+import { getAuthUser } from "../api/user";
+import Loader from "../components/elements/Loader";
 
 interface AppContextType {
   user: User | null;
-  setUser: React.Dispatch<React.SetStateAction<User | null>>;
 }
 
 const AppContext = createContext<AppContextType | undefined>(undefined);
@@ -17,22 +19,18 @@ interface AppProviderProps {
 }
 
 export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
+  const { data: user, isPending } = useQuery({
+    queryKey: ["jwt-user"],
+    queryFn: () => getAuthUser(),
+    retry: false,
+  });
 
-  // const { data, isPending } = useQuery({
-  //   queryKey: ["jwt-user"],
-  //   queryFn: () => getUser(),
-  // });
-
-  // useEffect(() => {
-  //   if (typeof data === "object") setUser(data);
-  // }, [data]);
-  
-  return (
+  return isPending ? (
+    <Loader />
+  ) : (
     <AppContext.Provider
       value={{
         user,
-        setUser,
       }}
     >
       {children}

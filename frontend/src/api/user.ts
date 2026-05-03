@@ -16,3 +16,20 @@ export async function loginUser(data: LoginUserData) {
   });
   return response.data;
 }
+
+export async function getAuthUser() {
+  const response = await axios.get(`${baseUrl}/api/user/jwt`, {
+    withCredentials: true,
+  });
+  return response.data;
+}
+
+export async function logoutUser() {
+  const response = await axios.post(
+    `${baseUrl}/auth/logout`,
+    {},
+    { withCredentials: true },
+  );
+  return response.data;
+}
+

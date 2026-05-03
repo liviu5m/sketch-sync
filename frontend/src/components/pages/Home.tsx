@@ -6,19 +6,6 @@ import axios from "axios";
 const Home = () => {
   const [roomCode, setRoomCode] = useState("");
 
-  useEffect(() => {
-    axios
-      .get(`http://localhost:8000/auth/me`, {
-        withCredentials: true,
-      })
-      .then((res) => {
-        console.log(res.data);
-      })
-      .catch((err) => {
-        console.log(err);
-      });
-  }, []);
-
   return (
     <BodyLayout>
       <div className="flex items-center justify-center h-full">

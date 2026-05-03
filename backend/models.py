@@ -9,3 +9,4 @@ class User(SQLModel, table=True):
     username: str = Field(index=True, unique=True, nullable=False)
     email: str = Field(index=True, unique=True, nullable=False)
     password: str = Field(nullable=False, min_length=8)
+    provider: str = Field(default="credentials")

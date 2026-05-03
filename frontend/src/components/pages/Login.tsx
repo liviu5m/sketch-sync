@@ -1,8 +1,8 @@
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
 import type { AxiosError } from "axios";
 import { ArrowLeft } from "lucide-react";
-import { useState } from "react";
-import { Link, useNavigate } from "react-router";
+import { useEffect, useState } from "react";
+import { Link, useNavigate, useSearchParams } from "react-router";
 import { toast } from "react-toastify";
 import { loginUser } from "../../api/user";
 
@@ -12,12 +12,16 @@ const Login = () => {
     password: "",
   });
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
   const { mutate: login, isPending } = useMutation({
     mutationKey: ["signup-user"],
     mutationFn: () => loginUser(data),
     onSuccess: (data) => {
       console.log(data);
+      queryClient.invalidateQueries({ queryKey: ["jwt-user"] });
       navigate("/");
     },
     onError: (err: AxiosError) => {
@@ -35,6 +39,30 @@ const Login = () => {
     },
   });
 
+  const handleGoogleLogin = () => {
+    window.location.href = import.meta.env.VITE_API_URL + "/auth/google-login";
+  };
+
+  useEffect(() => {
+    const errorType = searchParams.get("error");
+
+    if (errorType) {
+      const messages: Record<string, string> = {
+        provider_mismatch:
+          "This account uses a different login method (e.g., Credentials).",
+        invalid_credentials: "Invalid email or password.",
+        default: "An error occurred during authentication.",
+      };
+
+      setErrorMessage(messages[errorType] || messages.default);
+      searchParams.delete("error");
+      setSearchParams(searchParams, { replace: true });
+      setTimeout(() => {
+        setErrorMessage("");
+      }, 5000);
+    }
+  }, [searchParams, setSearchParams]);
+
   return (
     <div className="bg-[#0F172A] text-white min-h-screen gradient-bg h-full flex items-center justify-center">
       <Link
@@ -49,10 +77,16 @@ const Login = () => {
         <p className="text-slate-400">
           Welcome back! Please log in to continue
         </p>
-        <form className="flex flex-col gap-4 w-full" onSubmit={(e) => {
-          e.preventDefault();
-          login();
-        }}>
+        {errorMessage && (
+          <div className="text-red-700 p-3 rounded">{errorMessage}</div>
+        )}
+        <form
+          className="flex flex-col gap-4 w-full"
+          onSubmit={(e) => {
+            e.preventDefault();
+            login();
+          }}
+        >
           <input
             type="email"
             placeholder="Email"
@@ -81,7 +115,10 @@ const Login = () => {
             or
           </p>
         </div>
-        <button className="w-full flex items-center justify-center gap-3 bg-[#1E293B] text-slate-300 font-semibold py-3 rounded-xl border border-slate-700 hover:bg-[#334155] hover:border-[#FF6B6B] hover:text-white transition-all duration-200 cursor-pointer hover:scale-105">
+        <button
+          className="w-full flex items-center justify-center gap-3 bg-[#1E293B] text-slate-300 font-semibold py-3 rounded-xl border border-slate-700 hover:bg-[#334155] hover:border-[#FF6B6B] hover:text-white transition-all duration-200 cursor-pointer hover:scale-105"
+          onClick={() => handleGoogleLogin()}
+        >
           <img src="/imgs/google.png" className="w-5 h-5" />
           <span>Continue with Google</span>
         </button>
