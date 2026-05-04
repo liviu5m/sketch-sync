@@ -1,4 +1,6 @@
 from fastapi import APIRouter, Request, HTTPException
+from pydantic import BaseModel
+
 from database import SessionDep
 from models import User
 from utils import decodeToken
@@ -29,3 +31,18 @@ def getAuthUser(request: Request, session: SessionDep):
         "username": user.username,
         "email": user.email
     }
+
+class UserUpdate(BaseModel):
+    username: str
+
+@router.put("/{userId}")
+def updateUser(userId, data: UserUpdate, session: SessionDep):
+    print(data.username)
+    user = session.get(User, userId)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    user.username = data.username
+    session.add(user)
+    session.commit()
+    session.refresh(user)
+    return "Successfully updated profile"

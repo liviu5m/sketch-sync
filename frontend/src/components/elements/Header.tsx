@@ -30,10 +30,10 @@ const Header = () => {
   return (
     <header className="flex items-center justify-center p-8">
       <div className="container flex items-center justify-between">
-        <div className="flex items-center justify-center gap-5">
+        <Link to={"/"} className="flex items-center justify-center gap-5">
           <img src="./imgs/logo.png" className="w-8" alt="" />
           <h2 className="text-white text-xl font-semibold">SketchSync</h2>
-        </div>
+        </Link>
         {user ? (
           <>
             <DropdownMenu>
@@ -44,9 +44,11 @@ const Header = () => {
               </DropdownMenuTrigger>
               <DropdownMenuContent className="bg-[#162033] border-slate-700 text-slate-300 rounded-xl">
                 <DropdownMenuGroup>
-                  <DropdownMenuItem className="focus:bg-slate-700 focus:text-white cursor-pointer">
-                    Profile
-                  </DropdownMenuItem>
+                  <Link to="/profile">
+                    <DropdownMenuItem className="focus:bg-slate-700 focus:text-white cursor-pointer">
+                      Profile
+                    </DropdownMenuItem>
+                  </Link>
                   <DropdownMenuItem
                     className="focus:bg-slate-700 focus:text-white cursor-pointer"
                     onClick={() => logout()}

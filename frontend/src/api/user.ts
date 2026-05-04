@@ -33,3 +33,9 @@ export async function logoutUser() {
   return response.data;
 }
 
+export async function updateUser(username: string, id: number) {
+  const response = await axios.put(`${baseUrl}/api/user/${id}`, {username}, {
+    withCredentials: true,
+  });
+  return response.data;
+}

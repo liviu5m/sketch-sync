@@ -12,6 +12,8 @@ import Login from "./components/pages/Login";
 import Signup from "./components/pages/Signup";
 import Home from "./components/pages/Home";
 import { ToastContainer } from "react-toastify";
+import AuthRequiredRoute from "./components/middlewares/AuthRequiredRoute";
+import Profile from "./components/pages/Profile";
 
 function App() {
   const queryClient = new QueryClient();
@@ -31,6 +33,16 @@ function App() {
                       <Route path="/signup" element={<Signup />} />
                     </Routes>
                   </NonAuthRequiredRoute>
+                }
+              />
+              <Route
+                path="/*"
+                element={
+                  <AuthRequiredRoute>
+                    <Routes>
+                      <Route path="/profile" element={<Profile />} />
+                    </Routes>
+                  </AuthRequiredRoute>
                 }
               />
             </Routes>
