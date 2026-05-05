@@ -2,9 +2,41 @@ import { useEffect, useState } from "react";
 import BodyLayout from "../layouts/BodyLayout";
 import { ActivityIcon, ArrowRight, UsersRound } from "lucide-react";
 import axios from "axios";
+import { useMutation } from "@tanstack/react-query";
+import { createRoomFunc } from "../../api/room";
+import { useLocation, useNavigate } from "react-router-dom";
+import { useAppContext } from "../../lib/AppProvider";
 
 const Home = () => {
   const [roomCode, setRoomCode] = useState("");
+  const navigate = useNavigate();
+  const { user } = useAppContext();
+  const location = useLocation();
+  const [message, setMessage] = useState("");
+
+  const { mutate: createRoom } = useMutation({
+    mutationKey: ["create-room"],
+    mutationFn: () => createRoomFunc(),
+    onSuccess: (data) => {
+      console.log(data);
+      navigate("/room", {
+        state: { verification: true, code: data.code },
+      });
+    },
+    onError: (err) => {
+      console.log(err);
+    },
+  });
+
+  useEffect(() => {
+    if (location.state?.message) {
+      setMessage(location.state?.message);
+      navigate(location.pathname, { replace: true, state: {} });
+      setTimeout(() => {
+        setMessage("");
+      }, 5000);
+    }
+  }, []);
 
   return (
     <BodyLayout>
@@ -19,8 +51,17 @@ const Home = () => {
               create <br />
               together instantly with zero setup required.
             </p>
+            <p className="text-yellow-500 text-xl font-semibold mt-8">
+              {message}
+            </p>
             <div className="border border-slate-700 bg-[#162033] rounded-2xl p-6 mt-14 w-[500px]">
-              <button className="h-full bg-[#FF6B6B] text-white  font-semibold flex items-center justify-center gap-4 w-full rounded-2xl p-4 cursor-pointer hover:scale-105 hover:bg-[#f84a4a]">
+              <button
+                className="h-full bg-[#FF6B6B] text-white  font-semibold flex items-center justify-center gap-4 w-full rounded-2xl p-4 cursor-pointer hover:scale-105 hover:bg-[#f84a4a]"
+                onClick={() => {
+                  if (!user) navigate("/auth/login");
+                  createRoom();
+                }}
+              >
                 <span>Create New Room</span>
                 <ArrowRight className="w-5" />
               </button>
@@ -40,6 +81,13 @@ const Home = () => {
                 />
                 <button
                   className={`${roomCode != "" ? "text-white bg-slate-600 cursor-pointer hover:bg-slate-500" : "bg-slate-700 text-slate-400"} px-5 py-4 rounded-2xl font-semibold`}
+                  onClick={() => {
+                    if (!user) navigate("/auth/login");
+                    else
+                      navigate("/room", {
+                        state: { verification: true, code: roomCode },
+                      });
+                  }}
                 >
                   Join
                 </button>

@@ -25,6 +25,8 @@ export const AppProvider: React.FC<AppProviderProps> = ({ children }) => {
     retry: false,
   });
 
+  console.log(user);
+
   return isPending ? (
     <Loader />
   ) : (

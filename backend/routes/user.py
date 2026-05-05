@@ -29,7 +29,8 @@ def getAuthUser(request: Request, session: SessionDep):
     return {
         "id": user.id,
         "username": user.username,
-        "email": user.email
+        "email": user.email,
+        "createdAt": user.created_at,
     }
 
 class UserUpdate(BaseModel):

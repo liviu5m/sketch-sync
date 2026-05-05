@@ -2,6 +2,7 @@ export type User = {
   id: number;
   username: string;
   email: string;
+  createdAt: string;
 };
 
 export type UserData = {
@@ -9,9 +10,9 @@ export type UserData = {
   email: string;
   password: string;
   passwordConfirmation: string;
-}
+};
 
 export type LoginUserData = {
   email: string;
   password: string;
-}
+};

@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from typing import Optional
 import os
+import secrets
+import string
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 
@@ -42,3 +44,7 @@ def getUserIdFromToken(token: str) -> Optional[int]:
     if payload:
         return payload.get("userId")
     return None
+
+def generate_room_code(length: int = 6):
+    chars = string.ascii_uppercase + string.digits
+    return "".join(secrets.choice(chars) for _ in range(length))

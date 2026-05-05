@@ -14,6 +14,7 @@ import Home from "./components/pages/Home";
 import { ToastContainer } from "react-toastify";
 import AuthRequiredRoute from "./components/middlewares/AuthRequiredRoute";
 import Profile from "./components/pages/Profile";
+import Room from "./components/pages/Room";
 
 function App() {
   const queryClient = new QueryClient();
@@ -41,6 +42,7 @@ function App() {
                   <AuthRequiredRoute>
                     <Routes>
                       <Route path="/profile" element={<Profile />} />
+                      <Route path="/room" element={<Room />} />
                     </Routes>
                   </AuthRequiredRoute>
                 }
