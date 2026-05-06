@@ -34,6 +34,10 @@
   -webkit-text-fill-color: transparent;
 }
 
+.vertical-slider {
+
+}
+
 @theme inline {
   --font-heading: var(--font-sans);
   --font-sans: 'Figtree Variable', sans-serif;
