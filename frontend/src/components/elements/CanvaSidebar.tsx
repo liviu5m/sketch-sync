@@ -8,13 +8,28 @@ import {
   Type,
   Undo,
 } from "lucide-react";
-import React, { useState } from "react";
 
-const CanvaSidebar = () => {
-  const [tool, setTool] = useState("pen");
-  const [color, setColor] = useState("#1A1A1B");
-  const [brushSize, setBrushSize] = useState(2);
-
+const CanvaSidebar = ({
+  tool,
+  setTool,
+  color,
+  setColor,
+  brushSize,
+  setBrushSize,
+  undo,
+  redo,
+  clear,
+}: {
+  tool: "pen" | "eraser" | "rect" | "circle";
+  setTool: (e: "pen" | "eraser" | "rect" | "circle") => void;
+  color: string;
+  setColor: (e: string) => void;
+  brushSize: number;
+  setBrushSize: (e: number) => void;
+  undo: () => void;
+  redo: () => void;
+  clear: () => void;
+}) => {
   const colors = [
     "#1A1A1B",
     "#2563EB",
@@ -27,9 +42,11 @@ const CanvaSidebar = () => {
   ];
 
   return (
-    <div className={`h-[calc(100vh-70px)] w-[100px] bg-[#0F172A] border border-slate-800 text-white p-3 flex flex-col justify-between`}>
+    <div
+      className={`h-[calc(100vh-70px)] w-[100px] bg-[#0F172A] border border-slate-800 text-white p-3 flex flex-col justify-between`}
+    >
       <div>
-        <div className="flex flex-col items-center justify-center gap-1 mt-5">
+        <div className="flex flex-col items-center justify-center gap-1 mt-5 mb-8">
           <span
             className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer ${tool == "pen" ? "bg-[#FF6B6B]" : "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]"}`}
             onClick={() => setTool("pen")}
@@ -43,8 +60,8 @@ const CanvaSidebar = () => {
             <Eraser />
           </span>
           <span
-            className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer ${tool == "square" ? "bg-[#FF6B6B]" : "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]"}`}
-            onClick={() => setTool("square")}
+            className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer ${tool == "rect" ? "bg-[#FF6B6B]" : "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]"}`}
+            onClick={() => setTool("rect")}
           >
             <Square />
           </span>
@@ -54,12 +71,12 @@ const CanvaSidebar = () => {
           >
             <Circle />
           </span>
-          <span
+          {/* <span
             className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer ${tool == "text" ? "bg-[#FF6B6B]" : "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]"}`}
             onClick={() => setTool("text")}
           >
             <Type />
-          </span>
+          </span> */}
         </div>
         <div className="grid grid-cols-2 gap-2">
           {colors.map((c: string) => {
@@ -100,19 +117,19 @@ const CanvaSidebar = () => {
       <div>
         <span
           className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]`}
-          onClick={() => setTool("pen")}
+          onClick={() => undo()}
         >
           <Undo className="w-5" />
         </span>
         <span
           className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]`}
-          onClick={() => setTool("pen")}
+          onClick={() => redo()}
         >
           <Redo className="w-5" />
         </span>
         <span
           className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer "bg-[#0F172A] text-slate-400 hover:text-red-500 hover:bg-red-800/50`}
-          onClick={() => setTool("pen")}
+          onClick={() => clear()}
         >
           <Trash className="w-5" />
         </span>

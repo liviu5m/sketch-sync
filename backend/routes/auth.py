@@ -128,15 +128,9 @@ async def callback(request: Request, response: Response, session: SessionDep):
         user_name = id_info.get("name")
 
         userStmt = select(User).where(User.email == user_email)
-        userEmail = session.exec(userStmt).first()
-
-        if(userEmail):
-            error = "provider_mismatch"
-            return RedirectResponse(url=REDIRECT_URL + f"/auth/login?error={error}")
-
-        userStmt = select(User).where(User.email == user_email)
-        user = session.exec(userStmt).first()
-
+        user = session.exec(userStmt).first()[0]
+        print(user)
+        print("User provider" + user.provider)
         if not user:
             user = User(
                 username=f"{user_name}_{str(uuid.uuid4())[:8]}",
@@ -147,7 +141,6 @@ async def callback(request: Request, response: Response, session: SessionDep):
             session.add(user)
             session.commit()
             session.refresh(user)
-
         elif user.provider != "google":
             return RedirectResponse(url=f"{REDIRECT_URL}/auth/login?error=provider_mismatch")
 
