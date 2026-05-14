@@ -47,3 +47,4 @@ def updateUser(userId, data: UserUpdate, session: SessionDep):
     session.commit()
     session.refresh(user)
     return "Successfully updated profile"
+

@@ -26,9 +26,9 @@ const CanvaSidebar = ({
   setColor: (e: string) => void;
   brushSize: number;
   setBrushSize: (e: number) => void;
-  undo: () => void;
-  redo: () => void;
-  clear: () => void;
+  undo: (repeat: boolean) => void;
+  redo: (repeat: boolean) => void;
+  clear: (repeat: boolean) => void;
 }) => {
   const colors = [
     "#1A1A1B",
@@ -117,19 +117,19 @@ const CanvaSidebar = ({
       <div>
         <span
           className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]`}
-          onClick={() => undo()}
+          onClick={() => undo(false)}
         >
           <Undo className="w-5" />
         </span>
         <span
           className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer "bg-[#0F172A] text-slate-400 hover:text-white hover:bg-[#182135]`}
-          onClick={() => redo()}
+          onClick={() => redo(false)}
         >
           <Redo className="w-5" />
         </span>
         <span
           className={`w-full py-3 rounded-md hover:text flex items-center justify-center cursor-pointer "bg-[#0F172A] text-slate-400 hover:text-red-500 hover:bg-red-800/50`}
-          onClick={() => clear()}
+          onClick={() => clear(false)}
         >
           <Trash className="w-5" />
         </span>

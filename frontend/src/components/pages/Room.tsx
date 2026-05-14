@@ -1,5 +1,4 @@
 import React, { useEffect, useRef, useState } from "react";
-import BodyLayout from "../layouts/BodyLayout";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { getRoomData } from "../../api/room";
@@ -9,8 +8,13 @@ import Konva from "konva";
 import CompactHeader from "../elements/CompactHeader";
 import CanvaSidebar from "../elements/CanvaSidebar";
 import { useAppContext } from "../../lib/AppProvider";
+import { ArrowRight, ChevronRight, Users } from "lucide-react";
+import type { User } from "../../lib/Types";
+import { throttle } from "lodash";
+import { RemoteCursor } from "../elements/RemoteCursor";
 
 interface ShapeData {
+  id: string;
   tool: "pen" | "eraser" | "rect" | "circle";
   points: number[];
   color: string;
@@ -22,6 +26,17 @@ interface ShapeData {
   radius?: number;
 }
 
+type UserCanva = User & {
+  color: string;
+  x: number;
+  y: number;
+};
+
+export interface CursorPosition {
+  x: number;
+  y: number;
+}
+
 const Room = () => {
   const { user } = useAppContext();
   const location = useLocation();
@@ -29,28 +44,58 @@ const Room = () => {
   const navigate = useNavigate();
   const [tool, setTool] = useState<"pen" | "eraser" | "rect" | "circle">("pen");
   const [lines, setLines] = useState<ShapeData[]>([]);
-  const [linesHistory, setLinesHistory] = useState<ShapeData[]>([]);
+  const [redoStack, setRedoStack] = useState<ShapeData[]>([]);
   const [color, setColor] = useState("#1A1A1B");
   const [brushSize, setBrushSize] = useState(2);
   const socketRef = useRef<WebSocket | null>(null);
   const [isConnected, setIsConnected] = useState(false);
+  const [isOpenedConnectedUsers, setIsOpenedConnectedUsers] = useState(false);
+  const [connectedUsers, setConnectedUsers] = useState<UserCanva[]>([]);
+  const stageContainerRef = useRef<HTMLDivElement>(null);
+
+  const generateShapeId = () => {
+    return `${Date.now()}-${Math.random()}-${user?.id}`;
+  };
 
   useEffect(() => {
-    // Guard: Don't attempt connection if IDs are missing
     if (!code || !user?.id) return;
 
-    // Use localhost if 127.0.0.1 is giving you "Silent" failures
     const ws = new WebSocket(`ws://localhost:8000/ws/${code}/${user.id}`);
 
     ws.onopen = () => {
       console.log("✅ Connection Established");
       setIsConnected(true);
-      // Optional: Send a heartbeat immediately to wake up the backend logs
       ws.send(JSON.stringify({ type: "ping" }));
     };
 
     ws.onmessage = (event) => {
-      console.log("📩 Message from server:", event.data);
+      const message = JSON.parse(event.data);
+
+      if (message.type == "USER_CONNECTION") setConnectedUsers(message.users);
+      else if (message.type == "USER_COORDS") {
+        setConnectedUsers((prevConnectedUsers: UserCanva[]) => {
+          return prevConnectedUsers.map((user) => {
+            if (user.id == message.data.userId)
+              return { ...user, x: message.data.x, y: message.data.y };
+            return user;
+          });
+        });
+      } else if (message.type == "ADD_LINE" && message.data.userId != user.id) {
+        setLines((prevLines: ShapeData[]) => {
+          const index = prevLines.findIndex(
+            (line) => line.id == message.data.id,
+          );
+          if (index == -1) return [...prevLines, message.data];
+          const updatedLines = [...prevLines];
+          updatedLines[index] = message.data;
+          return updatedLines;
+        });
+      } else if (message.type == "UNDO_LINE" && message.data.userId != user.id)
+        setLines((lines) => lines.slice(0, -1));
+      else if (message.type == "REDO_LINE" && message.data.userId != user.id)
+        redo(true);
+      else if (message.type == "CLEAR_LINES" && message.data.userId != user.id)
+        clear(true);
     };
 
     ws.onerror = (error) => {
@@ -63,9 +108,6 @@ const Room = () => {
     };
 
     socketRef.current = ws;
-
-    // CLEANUP: This is vital.
-    // It prevents 100s of "Zombie" connections during development.
     return () => {
       if (
         ws.readyState === WebSocket.OPEN ||
@@ -90,20 +132,33 @@ const Room = () => {
     const pos = e.target.getStage()?.getPointerPosition();
 
     if (pos) {
-      setLines([
-        ...lines,
-        { tool, color, strokeWidth: brushSize, points: [pos.x, pos.y] },
-      ]);
+      setRedoStack([]);
+      const newShape = {
+        id: generateShapeId(),
+        tool,
+        color,
+        strokeWidth: brushSize,
+        points: [pos.x, pos.y],
+      };
+      setLines([...lines, newShape]);
+      broadcastLinePosition(newShape);
     }
   };
 
-  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
-    if (!isDrawing.current) return;
+  useEffect(() => {
+    console.log(redoStack);
+  }, [redoStack]);
 
+  const handleMouseMove = (e: Konva.KonvaEventObject<MouseEvent>) => {
     const stage = e.target.getStage();
     const point = stage?.getPointerPosition();
-
-    if (!point) return;
+    if (!point || !stageContainerRef.current) return;
+    const containerRect = stageContainerRef.current.getBoundingClientRect();
+    sendPosition({
+      x: point.x + containerRect.left,
+      y: point.y + containerRect.top,
+    });
+    if (!isDrawing.current) return;
 
     const last = { ...lines[lines.length - 1] };
     if (last.tool === "pen" || last.tool === "eraser") {
@@ -119,23 +174,49 @@ const Room = () => {
 
     const newLines = lines.slice(0, -1);
     setLines([...newLines, last]);
-    setLinesHistory(lines);
+    broadcastLinePosition({ ...last, x: point.x, y: point.y });
   };
+
+  const sendPosition = throttle((coords: CursorPosition) => {
+    sendMessage(
+      JSON.stringify({ ...coords, userId: user?.id, type: "COORDS" }),
+    );
+  }, 40);
+
+  const broadcastLinePosition = throttle((line: ShapeData) => {
+    sendMessage(JSON.stringify({ ...line, userId: user?.id, type: "LINE" }));
+  }, 40);
 
   const handleMouseUp = () => {
     isDrawing.current = false;
   };
 
-  const undo = () => {
-    setLines(lines.slice(0, -1));
+  const undo = (repeat?: boolean) => {
+    setLines((prev) => {
+      const newLines = prev.slice(0, -1);
+      setRedoStack((prevLines) => [...prevLines, prev[prev.length - 1]]);
+      return newLines;
+    });
+    if (!repeat)
+      sendMessage(JSON.stringify({ type: "UNDO_LINE", userId: user?.id }));
   };
 
-  const redo = () => {
-    if (lines.length == linesHistory.length) return;
-    setLines(linesHistory.slice(0, lines.length + 1));
+  const redo = (repeat?: boolean) => {
+    if (redoStack.length == 0) return;
+    setRedoStack((prevRedos) => {
+      setLines((lines) => [...lines, prevRedos[prevRedos.length - 1]]);
+      broadcastLinePosition(prevRedos[prevRedos.length - 1]);
+      return prevRedos.slice(0, -1);
+    });
+    if (!repeat)
+      sendMessage(JSON.stringify({ type: "REDO_LINE", userId: user?.id }));
   };
 
-  const clear = () => setLines([]);
+  const clear = (repeat?: boolean) => {
+    setLines([]);
+    if (!repeat)
+      sendMessage(JSON.stringify({ type: "CLEAR_LINES", userId: user?.id }));
+  };
 
   const {
     data: roomData,
@@ -168,7 +249,71 @@ const Room = () => {
   ) : (
     <main className="h-screen overflow-hidden">
       <CompactHeader code={code} />
+      {connectedUsers.map((u, i: number) => {
+        if (u.id != user?.id)
+          return (
+            <div key={i}>
+              <RemoteCursor x={u.x} y={u.y} color={u.color} name={u.username} />
+            </div>
+          );
+      })}
       <div className="flex justify-between">
+        <div className="absolute top-24 right-5 z-10 select-none">
+          <div
+            className={`flex items-center justify-center gap-3 px-4 py-2.5 rounded-xl border border-slate-200 bg-white shadow-sm cursor-pointer transition-all duration-200 hover:bg-slate-50 active:scale-95 ${
+              isOpenedConnectedUsers
+                ? "ring-2 ring-blue-500/10 border-blue-400"
+                : ""
+            }`}
+            onClick={() => setIsOpenedConnectedUsers(!isOpenedConnectedUsers)}
+          >
+            <div className="flex items-center gap-2 text-slate-700">
+              <Users size={18} strokeWidth={2.5} />
+              <span className="font-bold text-sm">{connectedUsers.length}</span>
+            </div>
+
+            <div
+              className={`text-slate-400 transition-transform duration-300 ${isOpenedConnectedUsers ? "rotate-90" : ""}`}
+            >
+              <ChevronRight size={16} />
+            </div>
+          </div>
+
+          {isOpenedConnectedUsers && (
+            <div className="absolute right-0 mt-2 w-72 bg-white rounded-2xl border border-slate-200 shadow-xl overflow-hidden animate-in fade-in zoom-in-95 duration-200">
+              <div className="bg-slate-50/80 border-b border-slate-100 px-5 py-3">
+                <h2 className="text-[11px] uppercase tracking-wider font-bold text-slate-500">
+                  Online now
+                </h2>
+              </div>
+
+              <div className="p-2">
+                {connectedUsers.map((user, i: number) => {
+                  return (
+                    <div>
+                      <div key={i} className="flex items-center mb-2">
+                        <div
+                          className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold`}
+                          style={{ backgroundColor: user.color }}
+                        >
+                          {user.username[0]}
+                        </div>
+                        <p className="p-3 text-sm text-slate-600 font-bold">
+                          {user.username}
+                        </p>
+                      </div>
+                    </div>
+                  );
+                })}
+                {connectedUsers.length == 0 && (
+                  <div className="p-3 text-sm text-slate-400 text-center">
+                    No other users active
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
+        </div>
         <CanvaSidebar
           tool={tool}
           setTool={setTool}
@@ -180,60 +325,62 @@ const Room = () => {
           redo={redo}
           clear={clear}
         />
-        <Stage
-          className="bg-red"
-          width={window.innerWidth - 100}
-          height={window.innerHeight}
-          onMouseDown={handleMouseDown}
-          onMousemove={handleMouseMove}
-          onMouseup={handleMouseUp}
-        >
-          <Layer>
-            {lines.map((shape: ShapeData, i: number) => {
-              if (shape.tool === "rect") {
-                return (
-                  <Rect
-                    key={i}
-                    x={shape.points[0]}
-                    y={shape.points[1]}
-                    width={shape.width}
-                    height={shape.height}
-                    stroke={shape.color}
-                    strokeWidth={shape.strokeWidth}
-                  />
-                );
-              } else if (shape.tool === "circle") {
-                return (
-                  <Circle
-                    key={i}
-                    x={shape.points[0]}
-                    y={shape.points[1]}
-                    radius={shape.radius}
-                    stroke={shape.color}
-                    strokeWidth={shape.strokeWidth}
-                  />
-                );
-              } else {
-                return (
-                  <Line
-                    key={i}
-                    points={shape.points}
-                    stroke={shape.color}
-                    strokeWidth={shape.strokeWidth}
-                    tension={0.5}
-                    lineCap="round"
-                    lineJoin="round"
-                    globalCompositeOperation={
-                      shape.tool === "eraser"
-                        ? "destination-out"
-                        : "source-over"
-                    }
-                  />
-                );
-              }
-            })}
-          </Layer>
-        </Stage>
+        <div ref={stageContainerRef}>
+          <Stage
+            className="cursor-crosshair"
+            width={window.innerWidth - 100}
+            height={window.innerHeight}
+            onMouseDown={handleMouseDown}
+            onMouseMove={handleMouseMove}
+            onMouseup={handleMouseUp}
+          >
+            <Layer>
+              {lines.map((shape: ShapeData, i: number) => {
+                if (shape.tool === "rect") {
+                  return (
+                    <Rect
+                      key={i}
+                      x={shape.points[0]}
+                      y={shape.points[1]}
+                      width={shape.width}
+                      height={shape.height}
+                      stroke={shape.color}
+                      strokeWidth={shape.strokeWidth}
+                    />
+                  );
+                } else if (shape.tool === "circle") {
+                  return (
+                    <Circle
+                      key={i}
+                      x={shape.points[0]}
+                      y={shape.points[1]}
+                      radius={shape.radius}
+                      stroke={shape.color}
+                      strokeWidth={shape.strokeWidth}
+                    />
+                  );
+                } else {
+                  return (
+                    <Line
+                      key={i}
+                      points={shape.points}
+                      stroke={shape.color}
+                      strokeWidth={shape.strokeWidth}
+                      tension={0.5}
+                      lineCap="round"
+                      lineJoin="round"
+                      globalCompositeOperation={
+                        shape.tool === "eraser"
+                          ? "destination-out"
+                          : "source-over"
+                      }
+                    />
+                  );
+                }
+              })}
+            </Layer>
+          </Stage>
+        </div>
       </div>
     </main>
   );

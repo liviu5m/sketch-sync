@@ -5,6 +5,7 @@ from typing import Optional
 import os
 import secrets
 import string
+import hashlib
 
 SECRET_KEY = os.getenv("SECRET_KEY", "your-secret-key-change-in-production")
 
@@ -48,3 +49,9 @@ def getUserIdFromToken(token: str) -> Optional[int]:
 def generate_room_code(length: int = 6):
     chars = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(chars) for _ in range(length))
+
+
+def emailToColor(email: str):
+    hash_object = hashlib.md5(email.lower().strip().encode('utf-8'))
+    hash_hex = hash_object.hexdigest()
+    return f"#{hash_hex[:6]}"
