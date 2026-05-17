@@ -95,7 +95,14 @@ class ConnectionManager:
                 session.execute(stmt)
                 session.commit()
 
-    def addLine(self, roomId,data):
+    def addLine(self, roomId, data):
+        shape_id = data.get("id")
+
+        for index, existing_shape in enumerate(self.lines[roomId]):
+            if existing_shape.get("id") == shape_id:
+                self.lines[roomId][index] = data
+                return
+
         self.lines[roomId].append(data)
 
     def getSocketData(self):
@@ -161,9 +168,9 @@ async def websocketEndpoint(websocket: WebSocket, roomId: str, userId: str, sess
                 })
                 shape_data = data.copy()
                 shape_data.pop("type", None)
-                shape_data.pop("userId", None)
                 manager.addLine(roomId, shape_data)
             elif(data["type"] == "UNDO_LINE"):
+                print(data)
                 await manager.broadcast_to_room(roomId, {
                     "data": data,
                     "type": "UNDO_LINE"

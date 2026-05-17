@@ -17,9 +17,9 @@ const CompactHeader = ({ code }: { code: string }) => {
           <h4>{code}</h4>
         </div>
       </div>
-      <div className="bg-[#1E293B] rounded-lg px-4 py-2 font-semibold text-sm flex items-center justify-center gap-3">
+      <div className="bg-[#1E293B] rounded-lg px-4 py-2 font-semibold text-sm flex items-center justify-center gap-3 cursor-pointer">
         <Share2 />
-        <span>Share</span>
+        <span>Export</span>
       </div>
     </header>
   );

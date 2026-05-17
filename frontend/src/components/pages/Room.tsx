@@ -92,7 +92,17 @@ const Room = () => {
           return updatedLines;
         });
       } else if (message.type == "UNDO_LINE" && message.data.userId != user.id)
-        setLines((lines) => lines.slice(0, -1));
+        setLines((prevLines) => {
+          if (message.data.id) {
+            return prevLines.filter((line) => line.id !== message.data.id);
+          }
+          for (let i = prevLines.length - 1; i >= 0; i--) {
+            if (prevLines[i].userId === message.data.userId) {
+              return prevLines.filter((_, idx) => idx !== i);
+            }
+          }
+          return prevLines;
+        });
       else if (message.type == "REDO_LINE" && message.data.userId != user.id)
         redo(true);
       else if (message.type == "CLEAR_LINES" && message.data.userId != user.id)
@@ -137,7 +147,7 @@ const Room = () => {
     const pos = e.target.getStage()?.getPointerPosition();
 
     if (pos && user) {
-      setRedoStack([]);
+      setRedoStack((prev) => prev.filter((el) => el.userId != user.id));
       const newShape = {
         id: generateShapeId(),
         tool,
@@ -160,6 +170,7 @@ const Room = () => {
     const point = stage?.getPointerPosition();
     if (!point || !stageContainerRef.current) return;
     const containerRect = stageContainerRef.current.getBoundingClientRect();
+    console.log(user?.id);
 
     sendPosition({
       x: point.x + containerRect.left,
@@ -167,7 +178,10 @@ const Room = () => {
     });
     if (!isDrawing.current) return;
 
-    const last = { ...lines[lines.length - 1] };
+    const userLines = lines.filter((el) => el.userId == user?.id);
+    if (userLines.length == 0) return;
+    const last = userLines[userLines.length - 1];
+
     if (last.tool === "pen" || last.tool === "eraser") {
       last.points = last.points.concat([point.x, point.y]);
     } else if (last.tool === "rect") {
@@ -179,7 +193,7 @@ const Room = () => {
       last.radius = Math.sqrt(dx * dx + dy * dy);
     }
 
-    const newLines = lines.slice(0, -1);
+    const newLines = lines.filter((el) => el.id != last.id);
     setLines([...newLines, last]);
     broadcastLinePosition({ ...last, x: point.x, y: point.y });
   };
@@ -197,26 +211,44 @@ const Room = () => {
   const handleMouseUp = () => {
     isDrawing.current = false;
   };
-
   const undo = (repeat?: boolean) => {
-    setLines((prev) => {
-      const newLines = prev.slice(0, -1);
-      setRedoStack((prevLines) => [...prevLines, prev[prev.length - 1]]);
-      return newLines;
-    });
-    if (!repeat)
-      sendMessage(JSON.stringify({ type: "UNDO_LINE", userId: user?.id }));
+    const userLines = lines.filter((line) => line.userId === user?.id);
+    if (userLines.length === 0) return;
+
+    const lastUserLine = userLines[userLines.length - 1];
+
+    setLines((prev) => prev.filter((line) => line.id !== lastUserLine.id));
+
+    setRedoStack((prevStack) => [...prevStack, lastUserLine]);
+
+    if (!repeat) {
+      sendMessage(
+        JSON.stringify({
+          type: "UNDO_LINE",
+          userId: user?.id,
+          id: lastUserLine.id,
+        }),
+      );
+    }
   };
 
   const redo = (repeat?: boolean) => {
-    if (redoStack.length == 0) return;
-    setRedoStack((prevRedos) => {
-      setLines((lines) => [...lines, prevRedos[prevRedos.length - 1]]);
-      broadcastLinePosition(prevRedos[prevRedos.length - 1]);
-      return prevRedos.slice(0, -1);
-    });
-    if (!repeat)
+    const userRedoLines = redoStack.filter((line) => line.userId === user?.id);
+    if (userRedoLines.length === 0) return;
+
+    const lineToRestore = userRedoLines[userRedoLines.length - 1];
+
+    setLines((prevLines) => [...prevLines, lineToRestore]);
+
+    broadcastLinePosition(lineToRestore);
+
+    setRedoStack((prevStack) =>
+      prevStack.filter((line) => line.id !== lineToRestore.id),
+    );
+
+    if (!repeat) {
       sendMessage(JSON.stringify({ type: "REDO_LINE", userId: user?.id }));
+    }
   };
 
   const clear = (repeat?: boolean) => {
