@@ -1,6 +1,5 @@
 from fastapi import APIRouter, HTTPException,WebSocket
 from sqlalchemy import select
-from .socket_handler import printUsers
 from database import SessionDep
 from models import Room
 
@@ -18,7 +17,6 @@ def createRoom(session: SessionDep):
 def getRoom(code: str, session: SessionDep):
     stmt = select(Room).where(Room.code == code)
     room = session.exec(stmt).first()
-    printUsers()
     if not room :
         raise HTTPException(status_code=404, detail="Room not found")
     return "Successfully founded"

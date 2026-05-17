@@ -6,6 +6,7 @@ interface CursorProps {
 }
 
 export const RemoteCursor: React.FC<CursorProps> = ({ x, y, color, name }) => {
+  if(!x || !y) return;
   return (
     <div
       className="fixed top-0 left-0 z-[9999] pointer-events-none transition-transform duration-1000 ease-linear will-change-transform z-20"

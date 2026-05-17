@@ -19,6 +19,7 @@ interface ShapeData {
   points: number[];
   color: string;
   strokeWidth: number;
+  userId: number;
   x?: number;
   y?: number;
   width?: number;
@@ -96,6 +97,10 @@ const Room = () => {
         redo(true);
       else if (message.type == "CLEAR_LINES" && message.data.userId != user.id)
         clear(true);
+      else if (message.type == "REFRESH_LINE") {
+        console.log(message);
+        setLines(message.lines);
+      }
     };
 
     ws.onerror = (error) => {
@@ -131,7 +136,7 @@ const Room = () => {
     isDrawing.current = true;
     const pos = e.target.getStage()?.getPointerPosition();
 
-    if (pos) {
+    if (pos && user) {
       setRedoStack([]);
       const newShape = {
         id: generateShapeId(),
@@ -139,6 +144,7 @@ const Room = () => {
         color,
         strokeWidth: brushSize,
         points: [pos.x, pos.y],
+        userId: user.id,
       };
       setLines([...lines, newShape]);
       broadcastLinePosition(newShape);
@@ -154,6 +160,7 @@ const Room = () => {
     const point = stage?.getPointerPosition();
     if (!point || !stageContainerRef.current) return;
     const containerRect = stageContainerRef.current.getBoundingClientRect();
+
     sendPosition({
       x: point.x + containerRect.left,
       y: point.y + containerRect.top,
@@ -181,11 +188,11 @@ const Room = () => {
     sendMessage(
       JSON.stringify({ ...coords, userId: user?.id, type: "COORDS" }),
     );
-  }, 40);
+  }, 100);
 
   const broadcastLinePosition = throttle((line: ShapeData) => {
     sendMessage(JSON.stringify({ ...line, userId: user?.id, type: "LINE" }));
-  }, 40);
+  }, 100);
 
   const handleMouseUp = () => {
     isDrawing.current = false;
@@ -290,18 +297,16 @@ const Room = () => {
               <div className="p-2">
                 {connectedUsers.map((user, i: number) => {
                   return (
-                    <div>
-                      <div key={i} className="flex items-center mb-2">
-                        <div
-                          className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold`}
-                          style={{ backgroundColor: user.color }}
-                        >
-                          {user.username[0]}
-                        </div>
-                        <p className="p-3 text-sm text-slate-600 font-bold">
-                          {user.username}
-                        </p>
+                    <div key={i} className="flex items-center mb-2">
+                      <div
+                        className={`w-10 h-10 rounded-full text-white flex items-center justify-center font-bold`}
+                        style={{ backgroundColor: user.color }}
+                      >
+                        {user.username[0]}
                       </div>
+                      <p className="p-3 text-sm text-slate-600 font-bold">
+                        {user.username}
+                      </p>
                     </div>
                   );
                 })}

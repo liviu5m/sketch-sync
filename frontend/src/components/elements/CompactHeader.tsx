@@ -5,7 +5,9 @@ const CompactHeader = ({ code }: { code: string }) => {
   return (
     <header className="bg-[#0F172A] text-white flex items-center justify-between px-20 py-4 height-[50px]">
       <div className="flex items-center justify-center gap-10">
-        <ArrowLeft className="text-[#eee]" />
+        <Link to={"/"}>
+          <ArrowLeft className="text-[#eee]" />
+        </Link>
         <Link to={"/"} className="flex items-center justify-center gap-5">
           <img src="./imgs/logo.png" className="w-8" alt="" />
           <h2 className="text-white text-xl font-semibold">SketchSync</h2>

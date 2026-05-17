@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import BodyLayout from "../layouts/BodyLayout";
 import { ActivityIcon, ArrowRight, UsersRound } from "lucide-react";
 import axios from "axios";
-import { useMutation } from "@tanstack/react-query";
+import { useMutation, useQuery } from "@tanstack/react-query";
 import { createRoomFunc } from "../../api/room";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAppContext } from "../../lib/AppProvider";
@@ -13,6 +13,7 @@ const Home = () => {
   const { user } = useAppContext();
   const location = useLocation();
   const [message, setMessage] = useState("");
+  const [data, setData] = useState({ users: 0, rooms: 0 });
 
   const { mutate: createRoom } = useMutation({
     mutationKey: ["create-room"],
@@ -27,6 +28,20 @@ const Home = () => {
       console.log(err);
     },
   });
+
+  useEffect(() => {
+    const ws = new WebSocket(`ws://localhost:8000/ws/data`);
+
+    ws.onopen = () => {
+      console.log("Connected");
+    };
+
+    ws.onmessage = (e) => {
+      const message = JSON.parse(e.data);
+      console.log(message);
+      setData(message)
+    };
+  }, []);
 
   useEffect(() => {
     if (location.state?.message) {
@@ -99,14 +114,14 @@ const Home = () => {
               <ActivityIcon className="text-[#42C174] w-5" />
               <h3 className="text-slate-400">
                 Active Rooms:{" "}
-                <span className="text-white font-semibold">123</span>
+                <span className="text-white font-semibold">{data.rooms}</span>
               </h3>
             </div>
             <div className="flex items-center justify-center gap-2 rounded-full border border-slate-700 bg-[#162033] px-5 py-2">
               <UsersRound className="text-[#60A5FA] w-5" />
               <h3 className="text-slate-400">
-                Users Rooms:{" "}
-                <span className="text-white font-semibold">324</span>
+                Active Users:{" "}
+                <span className="text-white font-semibold">{data.users}</span>
               </h3>
             </div>
           </div>

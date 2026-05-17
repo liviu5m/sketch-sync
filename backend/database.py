@@ -29,6 +29,9 @@ def init_db():
     tables = inspector.get_table_names()
     print(f"📊 Tables created: {tables}")
 
+def get_background_session():
+    return Session(engine)
+
 def get_session():
     with Session(engine) as session:
         yield session
