@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Request, HTTPException
+from fastapi.params import Depends
 from pydantic import BaseModel
 
 from database import SessionDep
 from models import User
-from utils import decodeToken
+from utils import decodeToken, loginHandler
 
-router = APIRouter(prefix="/api/user", tags=["user"])
+router = APIRouter(prefix="/api/user", tags=["user"], dependencies=[Depends(loginHandler)])
 
 @router.get("/jwt")
 def getAuthUser(request: Request, session: SessionDep):

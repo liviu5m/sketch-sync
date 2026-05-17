@@ -2,6 +2,7 @@ from passlib.context import CryptContext
 from datetime import datetime, timedelta, timezone
 from jose import jwt, JWTError
 from typing import Optional
+from fastapi import Request, HTTPException
 import os
 import secrets
 import string
@@ -55,3 +56,18 @@ def emailToColor(email: str):
     hash_object = hashlib.md5(email.lower().strip().encode('utf-8'))
     hash_hex = hash_object.hexdigest()
     return f"#{hash_hex[:6]}"
+
+
+async def loginHandler(request: Request):
+    token = request.cookies.get("jwt")
+    if not token:
+        raise HTTPException(status_code=401, detail="Not authenticated")
+
+    payload = decodeToken(token)
+    if not payload:
+        raise HTTPException(status_code=401, detail="Invalid or expired token")
+
+    userId = payload.get("userId")
+    if not userId:
+        raise HTTPException(status_code=401, detail="Invalid token")
+    return token

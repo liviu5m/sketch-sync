@@ -1,5 +1,6 @@
 from typing import Literal, Optional, List
 
+from fastapi.params import Depends
 from pydantic import BaseModel, Field
 from sqlalchemy import delete
 from sqlmodel import select
@@ -11,10 +12,10 @@ from collections import defaultdict
 import asyncio
 from database import get_background_session
 
-from utils import emailToColor
+from utils import emailToColor, loginHandler
 
-router = APIRouter(prefix="/ws")
-apiRouter = APIRouter(prefix="/socket")
+router = APIRouter(prefix="/ws", dependencies=[Depends(loginHandler)])
+apiRouter = APIRouter(prefix="/socket", dependencies=[Depends(loginHandler)])
 
 class Shape(BaseModel):
     id: str

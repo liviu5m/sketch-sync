@@ -1,9 +1,11 @@
 from fastapi import APIRouter, HTTPException,WebSocket
+from fastapi.params import Depends
 from sqlalchemy import select
 from database import SessionDep
 from models import Room
+from utils import loginHandler
 
-router = APIRouter(prefix="/api/room", tags=["rooms"])
+router = APIRouter(prefix="/api/room", tags=["rooms"], dependencies=[Depends(loginHandler)])
 
 @router.post("/")
 def createRoom(session: SessionDep):
